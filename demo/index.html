@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CNN Fashion Classifier</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Fashion MNIST Classifier</h1>
+            <p>Draw a clothing item (T-shirt, Bag, Shoe, etc.) and let the AI guess!</p>
+        </header>
+
+        <div class="main-content">
+            <div class="canvas-container">
+                <canvas id="drawingCanvas" width="280" height="280"></canvas>
+                <div class="controls">
+                    <button id="clearBtn" class="btn secondary">Clear</button>
+                    <button id="predictBtn" class="btn primary">Predict</button>
+                </div>
+            </div>
+
+            <div class="results-container">
+                <div id="predictionResult" class="prediction-box">
+                    <span class="label">Prediction</span>
+                    <h2 id="predictedLabel">...</h2>
+                    <div class="confidence-bar-wrapper">
+                        <div id="confidenceBar" class="confidence-bar"></div>
+                    </div>
+                    <span id="confidenceValue">0%</span>
+                </div>
+                
+                <div class="probabilities">
+                    <h3>Probabilities</h3>
+                    <ul id="probList">
+                        <!-- List items will be added here via JS -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
