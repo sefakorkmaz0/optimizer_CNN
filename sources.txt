@@ -1,0 +1,17 @@
+src/engine/SGDMomentum.java
+src/engine/Adam.java
+src/engine/Optimizer.java
+src/engine/SGD.java
+src/engine/Tensor.java
+src/engine/CrossEntropyLoss.java
+src/experiments/ExperimentRunner.java
+src/data/DataLoader.java
+src/utils/CircularQueue.java
+src/layers/Conv2D.java
+src/layers/MaxPool2D.java
+src/layers/ReLU.java
+src/layers/Layer.java
+src/layers/Softmax.java
+src/layers/Dense.java
+src/tests/LayerTest.java
+src/tests/TensorTest.java
