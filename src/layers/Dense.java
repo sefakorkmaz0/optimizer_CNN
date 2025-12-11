@@ -74,28 +74,23 @@ public class Dense implements Layer {
     @Override
     public Tensor backward(Tensor gradOutput) {
         // gradOutput is dL/dy (size O)
-        // We need:
         // dL/dW = dL/dy * dy/dW = gradOutput * input^T
         // dL/db = gradOutput
-        // dL/dx = dL/dy * dy/dx = gradOutput^T * W
+        // dL/dx = dL/dy * dy/dx = W^T * gradOutput
 
-        Tensor gradInput = new Tensor(lastInput.depth, lastInput.height, lastInput.width); // Shape of original input
+        Tensor gradInput = new Tensor(lastInput.depth, lastInput.height, lastInput.width);
 
-        // Compute Gradients for Weights and Biases
         for (int o = 0; o < outputSize; o++) {
             double grad = gradOutput.data[o];
-            gradBiases.data[o] += grad; // Accumulate? Usually we overwrite or accumulate if batch.
-                                        // For simple SGD per sample, overwrite. But if batch, accumulate.
-                                        // Let's assume overwrite for this step, optimizer handles update.
-                                        // Actually, standard backprop sets the gradient for the current step.
+
+            // Bias gradient: dL/db = dL/dy
             gradBiases.data[o] = grad;
 
             for (int i = 0; i < inputSize; i++) {
-                // dL/dW_oi = grad_o * input_i
+                // Weight gradient: dL/dW_oi = grad_o * input_i
                 gradWeights.set(0, o, i, grad * lastInput.data[i]);
 
-                // Accumulate gradient for input
-                // dL/dx_i += grad_o * W_oi
+                // Input gradient: dL/dx_i += grad_o * W_oi
                 gradInput.data[i] += grad * weights.get(0, o, i);
             }
         }

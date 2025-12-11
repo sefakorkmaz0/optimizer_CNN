@@ -3,6 +3,7 @@ package experiments;
 import data.DataLoader;
 import data.DataLoader.DataPoint;
 import engine.*;
+import engine.graph.*;
 import layers.*;
 import utils.CircularQueue;
 
@@ -15,19 +16,39 @@ import java.util.List;
 
 public class ExperimentRunner {
     private static final int EPOCHS = 5;
-    private static final int BATCH_SIZE = 32; // Mini-batch size (simulated)
-    // Note: Our layers currently support single-item forward/backward.
-    // For true mini-batch, we'd need to accumulate gradients over BATCH_SIZE items
-    // before update.
+    private static final int BATCH_SIZE = 32;
 
     private static final String TRAIN_FILE = "data/fashion-mnist_train.csv";
     private static final String TEST_FILE = "data/fashion-mnist_test.csv";
     private static final String RESULTS_FILE = "experiments/results.csv";
 
     public static void main(String[] args) throws IOException {
-        // Initialize CSV
-        try (PrintWriter writer = new PrintWriter(new FileWriter(RESULTS_FILE))) {
-            writer.println("Optimizer,InputSize,Trial,Epoch,TimeMs,MemoryMB,Accuracy,Loss");
+        // Load existing results to support resuming
+        java.util.Set<String> completedTrials = new java.util.HashSet<>();
+        java.io.File resultsFile = new java.io.File(RESULTS_FILE);
+        if (resultsFile.exists()) {
+            System.out.println("Found existing results. Checking for completion...");
+            try (java.io.BufferedReader br = new java.io.BufferedReader(new java.io.FileReader(resultsFile))) {
+                String line;
+                br.readLine(); // Skip header
+                while ((line = br.readLine()) != null) {
+                    String[] parts = line.split(",");
+                    if (parts.length >= 4) {
+                        String opt = parts[0];
+                        String nStr = parts[1];
+                        String tStr = parts[2];
+                        int epoch = Integer.parseInt(parts[3]);
+                        if (epoch == EPOCHS) {
+                            completedTrials.add(opt + "_" + nStr + "_" + tStr);
+                        }
+                    }
+                }
+            }
+        } else {
+            // Initialize CSV if not exists
+            try (PrintWriter writer = new PrintWriter(new FileWriter(RESULTS_FILE))) {
+                writer.println("Optimizer,InputSize,Trial,Epoch,TimeMs,MemoryMB,Accuracy,Loss");
+            }
         }
 
         int[] sizes = { 1000, 10000, 60000 };
@@ -41,6 +62,12 @@ public class ExperimentRunner {
         for (int n : sizes) {
             for (String optName : optimizers) {
                 for (int t = 1; t <= trials; t++) {
+                    String key = optName + "_" + n + "_" + t;
+                    if (completedTrials.contains(key)) {
+                        System.out.println("Skipping completed: " + key);
+                        continue;
+                    }
+
                     System.out.printf("Running: %s, N=%d, Trial=%d\n", optName, n, t);
                     runExperiment(optName, n, t, false);
                     System.gc(); // Suggest GC between runs
@@ -53,19 +80,38 @@ public class ExperimentRunner {
     private static void runExperiment(String optName, int n, int trial, boolean isWarmup) throws IOException {
         // Load Data
         List<DataPoint> trainData = DataLoader.load(TRAIN_FILE, n);
-        List<DataPoint> testData = DataLoader.load(TEST_FILE, 1000); // Fixed test set size for speed
+        List<DataPoint> testData = DataLoader.load(TEST_FILE, 1000);
 
-        // Build Model
-        List<Layer> layers = new ArrayList<>();
-        // Input: 1x28x28
-        // Conv: 8 filters, 3x3 -> 8x26x26
-        layers.add(new Conv2D(1, 8, 3));
-        layers.add(new ReLU());
-        // MaxPool: 2x2 -> 8x13x13
-        layers.add(new MaxPool2D());
-        // Dense: Input 8*13*13 = 1352 -> Output 10
-        layers.add(new Dense(8 * 13 * 13, 10));
-        layers.add(new Softmax());
+        // Build Graph Model
+        ComputationGraph graph = new ComputationGraph();
+
+        // Define Nodes
+        Node inputNode = new Node("Input", null); // Placeholder for input
+        Node convNode = new Node("Conv1", new Conv2D(1, 8, 3));
+        Node reluNode = new Node("ReLU1", new ReLU());
+        Node poolNode = new Node("Pool1", new MaxPool2D());
+        Node denseNode = new Node("Dense1", new Dense(8 * 13 * 13, 10)); // 8 filters * 13x13 size
+        Node softmaxNode = new Node("Softmax", new Softmax());
+
+        // Connect Nodes (Linear Chain)
+        connect(inputNode, convNode);
+        connect(convNode, reluNode);
+        connect(reluNode, poolNode);
+        connect(poolNode, denseNode);
+        connect(denseNode, softmaxNode);
+
+        // Add to Graph
+        graph.addNode(inputNode);
+        graph.addNode(convNode);
+        graph.addNode(reluNode);
+        graph.addNode(poolNode);
+        graph.addNode(denseNode);
+        graph.addNode(softmaxNode);
+
+        // Compile (Topological Sort)
+        if (!isWarmup)
+            System.out.println("Compiling Computation Graph...");
+        graph.compile();
 
         // Optimizer
         Optimizer optimizer;
@@ -79,13 +125,13 @@ public class ExperimentRunner {
                 break;
             case "Adam":
                 optimizer = new Adam(0.001);
-                break; // Adam usually needs lower LR
+                break;
             default:
                 throw new IllegalArgumentException("Unknown optimizer");
         }
 
         CrossEntropyLoss lossFunc = new CrossEntropyLoss();
-        CircularQueue lossQueue = new CircularQueue(100); // Moving average of last 100
+        CircularQueue lossQueue = new CircularQueue(100);
 
         long startTime = System.currentTimeMillis();
 
@@ -98,11 +144,8 @@ public class ExperimentRunner {
             for (int i = 0; i < trainData.size(); i++) {
                 DataPoint dp = trainData.get(i);
 
-                // Forward
-                Tensor out = dp.input;
-                for (Layer l : layers) {
-                    out = l.forward(out);
-                }
+                // Forward via Graph
+                Tensor out = graph.forward(dp.input);
 
                 // Loss & Accuracy
                 double l = lossFunc.forward(out, dp.label);
@@ -113,15 +156,19 @@ public class ExperimentRunner {
                 if (pred == dp.labelIndex)
                     correct++;
 
-                // Backward
+                // Backward via Graph
                 Tensor grad = lossFunc.backward(out, dp.label);
-                for (int j = layers.size() - 1; j >= 0; j--) {
-                    grad = layers.get(j).backward(grad);
-                }
+                graph.backward(grad);
 
-                // Update (Simulated Batch: Update every step for now, or accumulate)
-                // For pure SGD, we update every step.
-                optimizer.update(layers);
+                // Update (Extract layers from graph to pass to optimizer)
+                // In a real framework, optimizer would iterate graph nodes.
+                // Here we adapt to existing Optimizer API.
+                List<Layer> trainableLayers = new ArrayList<>();
+                for (Node node : graph.getExecutionOrder()) {
+                    if (node.layer != null)
+                        trainableLayers.add(node.layer);
+                }
+                optimizer.update(trainableLayers);
             }
 
             long currentTime = System.currentTimeMillis();
@@ -134,8 +181,13 @@ public class ExperimentRunner {
             if (!isWarmup) {
                 logResult(optName, n, trial, epoch, elapsed, memory, acc, avgLoss);
             }
-            System.out.printf("Epoch %d: Loss=%.4f, Acc=%.4f, Time=%dms\n", epoch, avgLoss, acc, elapsed);
+            if (!isWarmup || epoch % 5 == 0) // Reducing spam during warmup
+                System.out.printf("Epoch %d: Loss=%.4f, Acc=%.4f, Time=%dms\n", epoch, avgLoss, acc, elapsed);
         }
+    }
+
+    private static void connect(Node a, Node b) {
+        b.addInput(a);
     }
 
     private static void logResult(String opt, int n, int trial, int epoch, long time, double mem, double acc,

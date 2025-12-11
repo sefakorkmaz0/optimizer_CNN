@@ -1,49 +1,160 @@
-# Pure Java CNN Optimizer Benchmark
+# CNN Optimizer Benchmark - From Scratch Implementation
 
-This project implements a Convolutional Neural Network (CNN) library from scratch in Java to benchmark different optimization algorithms (SGD, Momentum, Adam) on the Fashion-MNIST dataset.
+A pure Java implementation of a Convolutional Neural Network (CNN) library with a DAG-based computation graph and multiple optimization algorithms. This project benchmarks SGD, Momentum, and Adam optimizers on the Fashion-MNIST dataset.
 
-## Project Structure
-- `src/engine`: Core tensor operations and optimizer implementations.
-- `src/layers`: Neural network layers (Conv2D, Dense, ReLU, MaxPool, Softmax).
-- `src/data`: DataLoader for CSV datasets.
-- `src/experiments`: Experiment runner and logging.
-- `plots/`: Python scripts for visualization.
+## 🎯 Project Goals
 
-## Prerequisites
-- Java JDK 11+
-- Python 3 (for plotting) with `pandas`, `matplotlib`, `seaborn`
-- Fashion-MNIST dataset (CSV format) in `data/` folder.
+1. **Algorithm Implementation**: Build backpropagation and optimization algorithms from scratch
+2. **Data Structures**: Implement a DAG-based computation graph with topological sorting
+3. **Empirical Analysis**: Compare optimizer performance across different dataset sizes
+4. **Visualization**: Demonstrate learned feature representations via t-SNE
 
-## Build & Run
+## 📁 Project Structure
+
+```
+optimizer_CNN/
+├── src/
+│   ├── engine/          # Core: Tensor, Optimizers (SGD, Adam), Loss
+│   │   └── graph/       # ComputationGraph, Node (DAG implementation)
+│   ├── layers/          # Conv2D, Dense, MaxPool2D, ReLU, Softmax
+│   ├── data/            # DataLoader for CSV datasets
+│   ├── experiments/     # ExperimentRunner, EmbeddingExtractor
+│   ├── tests/           # Unit tests for layers and graph
+│   └── utils/           # CircularQueue, ModelExporter
+├── data/                # Fashion-MNIST CSV files (not in git)
+├── experiments/         # Generated results (CSV)
+├── plots/               # Visualization scripts and outputs
+├── AI_USAGE.md          # AI tool usage declaration
+└── README.md            # This file
+```
+
+## 🛠️ Prerequisites
+
+- **Java**: JDK 11 or higher
+- **Python 3**: For plotting (with `pandas`, `matplotlib`, `seaborn`, `scikit-learn`)
+- **Dataset**: Fashion-MNIST in CSV format in `data/` folder
+  - Download from: https://www.kaggle.com/datasets/zalando-research/fashionmnist
+
+## 🚀 Build & Run
 
 ### 1. Compile
+
 ```bash
-javac -cp src src/engine/*.java src/layers/*.java src/utils/*.java src/data/*.java src/experiments/ExperimentRunner.java
+# Create bin directory
+mkdir -p bin
+
+# Compile all Java files
+javac -cp src -d bin src/engine/*.java src/engine/graph/*.java src/layers/*.java src/utils/*.java src/data/*.java src/experiments/*.java src/tests/*.java
 ```
 
-### 2. Run Experiments
+### 2. Run Tests (Verify Installation)
+
 ```bash
-java -cp src experiments.ExperimentRunner
+java -cp bin tests.LayerTest
+java -cp bin tests.GraphTest
+java -cp bin tests.TensorTest
 ```
+
+### 3. Run Benchmark Experiments
+
+```bash
+java -cp bin experiments.ExperimentRunner
+```
+
 This will:
-- Warm up the JVM.
-- Run training for SGD, Momentum, and Adam.
-- Test with Input Sizes N = 1000, 10000, 60000.
-- Repeat each experiment 3 times.
-- Save results to `experiments/results.csv`.
+- Warm up the JVM
+- Train with SGD, Momentum, and Adam optimizers
+- Test with input sizes: 1,000 / 10,000 / 60,000
+- Run 3 trials per configuration
+- Save results to `experiments/results.csv`
 
-### 3. Generate Plots
+### 4. Generate Embedding Comparison
+
 ```bash
-python3 plots/plot_results.py
+java -cp bin experiments.EmbeddingExtractor
 ```
-Plots will be saved in the `plots/` directory.
 
-## Reproducibility
-- **Seeds**: Random number generators are initialized with default seeds (or time-based) in the current implementation. For strict reproducibility, modify `Tensor.java` and `Layer` classes to accept a fixed seed.
-- **Hardware**: Experiments were designed to run on standard consumer hardware (e.g., Intel Core i7, 16GB RAM).
+### 5. Generate Plots
 
-## Algorithmic Analysis
-The project compares:
-- **Time Complexity**: $O(N)$ scaling.
-- **Space Complexity**: SGD ($O(W)$) vs Adam ($O(3W)$).
-- **Convergence**: Loss reduction over epochs.
+```bash
+# Benchmark plots
+python3 plots/plot_results.py
+
+# t-SNE comparison
+python3 plots/plot_tsne_comparison.py
+```
+
+## 📊 Results
+
+### Benchmark Metrics
+
+| Optimizer | Final Accuracy (60k) | Convergence Speed | Memory Usage |
+|-----------|---------------------|-------------------|--------------|
+| SGD       | ~89%                | Slow              | O(W)         |
+| Momentum  | ~75-85%*            | Medium            | O(2W)        |
+| Adam      | ~90.6%              | Fast              | O(3W)        |
+
+*Momentum showed instability with default hyperparameters on this architecture.
+
+### Plots Generated
+- `plots/runtime_vs_size.png` - Training time vs dataset size
+- `plots/memory_vs_size.png` - Memory usage comparison
+- `plots/loss_convergence.png` - Loss over epochs
+- `plots/accuracy_progression.png` - Accuracy over epochs
+- `plots/tsne_comparison.png` - Feature space visualization (SGD vs Adam)
+
+## 🔬 Reproducibility
+
+### Hardware
+- **CPU**: [Your CPU Here, e.g., Intel Core i7-10700]
+- **RAM**: [Your RAM Here, e.g., 16GB DDR4]
+- **OS**: [Your OS Here, e.g., Ubuntu 22.04]
+
+### Random Seeds
+The current implementation uses time-based random initialization. For strict reproducibility, modify:
+- `Tensor.java:fillRandom()` - Add seed parameter
+- `Conv2D.java`, `Dense.java` - Use seeded Random instance
+
+### Trials
+Each experiment is repeated 3 times with results averaged (variance shown in plots).
+
+## 📐 Algorithmic Analysis
+
+### Time Complexity
+
+| Component | Complexity |
+|-----------|------------|
+| Forward Pass (Conv2D) | O(F × D × K² × H × W) |
+| Forward Pass (Dense) | O(I × O) |
+| Backward Pass | Same as forward |
+| Topological Sort | O(V + E) |
+| SGD Update | O(W) |
+| Adam Update | O(W) |
+
+Where: F=filters, D=depth, K=kernel, H×W=output size, I=input, O=output, V=nodes, E=edges, W=parameters
+
+### Space Complexity
+
+| Optimizer | Additional Memory |
+|-----------|------------------|
+| SGD | O(1) |
+| Momentum | O(W) - velocity |
+| Adam | O(2W) - m and v vectors |
+
+## 🎥 Demo Video
+
+[Link to demo video - 2-5 minutes]
+
+## 📚 References
+
+- [Fashion-MNIST Dataset](https://github.com/zalandoresearch/fashion-mnist)
+- [Adam Optimizer Paper](https://arxiv.org/abs/1412.6980)
+- [Backpropagation - Wikipedia](https://en.wikipedia.org/wiki/Backpropagation)
+
+## 👥 Team
+
+- [Your Name Here]
+
+## 📄 License
+
+This project is for educational purposes as part of the Algorithms Course (Fall 2025).
