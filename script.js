@@ -1,34 +1,56 @@
+/**
+ * Neural Vision - Fashion Classifier
+ * Pure JavaScript CNN Inference Engine
+ */
+
+// DOM Elements
 const canvas = document.getElementById('drawingCanvas');
 const ctx = canvas.getContext('2d');
 const clearBtn = document.getElementById('clearBtn');
 const predictBtn = document.getElementById('predictBtn');
 const predictedLabel = document.getElementById('predictedLabel');
+const resultEmoji = document.getElementById('resultEmoji');
+const resultCard = document.getElementById('resultCard');
 const confidenceBar = document.getElementById('confidenceBar');
 const confidenceValue = document.getElementById('confidenceValue');
 const probList = document.getElementById('probList');
 
+// Fashion-MNIST Classes with Emojis
 const CLASSES = [
-    "T-shirt/top", "Trouser", "Pullover", "Dress", "Coat",
-    "Sandal", "Shirt", "Sneaker", "Bag", "Ankle boot"
+    { name: "T-shirt/Top", emoji: "👕" },
+    { name: "Trouser", emoji: "👖" },
+    { name: "Pullover", emoji: "🧥" },
+    { name: "Dress", emoji: "👗" },
+    { name: "Coat", emoji: "🧥" },
+    { name: "Sandal", emoji: "🩴" },
+    { name: "Shirt", emoji: "👔" },
+    { name: "Sneaker", emoji: "👟" },
+    { name: "Bag", emoji: "👜" },
+    { name: "Ankle Boot", emoji: "🥾" }
 ];
 
 let isDrawing = false;
 let modelWeights = null;
 
 // Initialize Canvas
-ctx.fillStyle = "black";
-ctx.fillRect(0, 0, canvas.width, canvas.height);
-ctx.strokeStyle = "white";
-ctx.lineWidth = 15;
-ctx.lineCap = "round";
-ctx.lineJoin = "round";
+function initCanvas() {
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 18;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+}
+
+initCanvas();
 
 // Event Listeners
 canvas.addEventListener('mousedown', startDrawing);
 canvas.addEventListener('mousemove', draw);
 canvas.addEventListener('mouseup', stopDrawing);
 canvas.addEventListener('mouseout', stopDrawing);
-// Touch support
+
+// Touch support for mobile
 canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e.touches[0]); });
 canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
 canvas.addEventListener('touchend', stopDrawing);
@@ -36,15 +58,19 @@ canvas.addEventListener('touchend', stopDrawing);
 clearBtn.addEventListener('click', clearCanvas);
 predictBtn.addEventListener('click', predict);
 
-// Load Model
+// Load Model Weights
 fetch('model_weights.json')
     .then(response => response.json())
     .then(data => {
         modelWeights = data;
-        console.log("Model weights loaded");
+        console.log("✅ Model weights loaded successfully");
     })
-    .catch(err => console.error("Error loading weights:", err));
+    .catch(err => {
+        console.error("❌ Error loading weights:", err);
+        predictedLabel.textContent = "Model load error";
+    });
 
+// Drawing Functions
 function startDrawing(e) {
     isDrawing = true;
     draw(e);
@@ -52,6 +78,7 @@ function startDrawing(e) {
 
 function draw(e) {
     if (!isDrawing) return;
+
     const rect = canvas.getBoundingClientRect();
     const x = (e.clientX || e.pageX) - rect.left;
     const y = (e.clientY || e.pageY) - rect.top;
@@ -68,70 +95,73 @@ function stopDrawing() {
 }
 
 function clearCanvas() {
-    ctx.fillStyle = "black";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    predictedLabel.innerText = "...";
+    initCanvas();
+    predictedLabel.textContent = "Draw something...";
+    resultEmoji.textContent = "✏️";
     confidenceBar.style.width = "0%";
-    confidenceValue.innerText = "0%";
+    confidenceValue.textContent = "0%";
     probList.innerHTML = "";
+    resultCard.classList.remove('active');
 }
 
+// Get Input Tensor from Canvas
 function getInputTensor() {
-    // 1. Resize to 28x28
+    // Resize to 28x28
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = 28;
     tempCanvas.height = 28;
     const tempCtx = tempCanvas.getContext('2d');
 
-    // Draw main canvas onto temp canvas (scaling down)
     tempCtx.drawImage(canvas, 0, 0, 28, 28);
 
-    // 2. Get pixel data
     const imageData = tempCtx.getImageData(0, 0, 28, 28);
-    const data = imageData.data; // RGBA
+    const data = imageData.data;
 
-    // 3. Convert to tensor [1, 28, 28] (flattened)
+    // Convert to tensor [1, 28, 28] (flattened)
     const tensor = new Float32Array(28 * 28);
     for (let i = 0; i < 28 * 28; i++) {
-        // Take Red channel (since it's grayscale/BW) and normalize 0-1
         tensor[i] = data[i * 4] / 255.0;
     }
     return tensor;
 }
 
-// --- Inference Engine ---
+// ============================================
+// Neural Network Inference Engine
+// ============================================
 
 function predict() {
     if (!modelWeights) {
-        alert("Model loading...");
+        alert("Model is still loading...");
         return;
     }
 
-    const input = getInputTensor(); // [784]
+    // Add loading state
+    predictBtn.classList.add('loading');
+    predictedLabel.textContent = "Analyzing...";
 
-    // 1. Conv2D
-    // Input: 1x28x28, Weights: [8, 1, 9], Biases: [8]
-    // Output: 8x26x26
-    const convOut = conv2d(input, modelWeights.conv2d.weights, modelWeights.conv2d.biases);
+    // Small delay for UX
+    setTimeout(() => {
+        const input = getInputTensor();
 
-    // 2. ReLU
-    const reluOut = relu(convOut);
+        // Forward Pass
+        // 1. Conv2D: 1x28x28 → 8x26x26
+        const convOut = conv2d(input, modelWeights.conv2d.weights, modelWeights.conv2d.biases);
 
-    // 3. MaxPool2D
-    // Input: 8x26x26 -> Output: 8x13x13
-    const poolOut = maxPool2d(reluOut, 8, 26, 26);
+        // 2. ReLU
+        const reluOut = relu(convOut);
 
-    // 4. Dense
-    // Input: 1352, Weights: [10, 1352], Biases: [10] (Wait, Java export format needs check)
-    // My Java export flattens everything. 
-    // Dense weights in Java are [10, 1352] flattened? No, Java Tensor is [Depth, Height, Width].
-    // Dense weights in Java: new Tensor(outputSize, inputSize, 1) -> [10, 1352, 1]
-    const denseOut = dense(poolOut, modelWeights.dense.weights, modelWeights.dense.biases);
+        // 3. MaxPool2D: 8x26x26 → 8x13x13
+        const poolOut = maxPool2d(reluOut, 8, 26, 26);
 
-    // 5. Softmax
-    const probs = softmax(denseOut);
+        // 4. Dense: 1352 → 10
+        const denseOut = dense(poolOut, modelWeights.dense.weights, modelWeights.dense.biases);
 
-    displayResults(probs);
+        // 5. Softmax
+        const probs = softmax(denseOut);
+
+        displayResults(probs);
+        predictBtn.classList.remove('loading');
+    }, 100);
 }
 
 function conv2d(input, weights, biases) {
@@ -150,8 +180,6 @@ function conv2d(input, weights, biases) {
                 for (let ky = 0; ky < kSize; ky++) {
                     for (let kx = 0; kx < kSize; kx++) {
                         const inVal = input[(y + ky) * inW + (x + kx)];
-                        // Weights: [numFilters, 1, 9] -> flattened
-                        // Index: f * 9 + ky * 3 + kx
                         const wVal = weights[f * 9 + ky * 3 + kx];
                         sum += inVal * wVal;
                     }
@@ -176,7 +204,6 @@ function maxPool2d(input, depth, height, width) {
         for (let y = 0; y < outH; y++) {
             for (let x = 0; x < outW; x++) {
                 let maxVal = -Infinity;
-                // 2x2 window
                 for (let ky = 0; ky < 2; ky++) {
                     for (let kx = 0; kx < 2; kx++) {
                         const val = input[d * (height * width) + (y * 2 + ky) * width + (x * 2 + kx)];
@@ -198,8 +225,6 @@ function dense(input, weights, biases) {
     for (let i = 0; i < outputSize; i++) {
         let sum = 0;
         for (let j = 0; j < inputSize; j++) {
-            // Weights: [10, 1352] -> flattened
-            // Index: i * 1352 + j
             sum += input[j] * weights[i * inputSize + j];
         }
         output[i] = sum + biases[i];
@@ -214,8 +239,12 @@ function softmax(input) {
     return exps.map(x => x / sum);
 }
 
+// ============================================
+// Display Results
+// ============================================
+
 function displayResults(probs) {
-    // Find max
+    // Find top prediction
     let maxProb = -1;
     let maxIdx = -1;
     for (let i = 0; i < probs.length; i++) {
@@ -225,21 +254,51 @@ function displayResults(probs) {
         }
     }
 
-    // Update UI
-    predictedLabel.innerText = CLASSES[maxIdx];
+    // Update main result
+    const prediction = CLASSES[maxIdx];
+    predictedLabel.textContent = prediction.name;
+    resultEmoji.textContent = prediction.emoji;
+
     const confidence = Math.round(maxProb * 100);
     confidenceBar.style.width = `${confidence}%`;
-    confidenceValue.innerText = `${confidence}%`;
+    confidenceValue.textContent = `${confidence}%`;
 
-    // List all
+    // Animate result card
+    resultCard.classList.add('active');
+
+    // Build probability list
     probList.innerHTML = "";
-    const sortedIndices = probs.map((p, i) => [p, i])
+    const sortedIndices = probs
+        .map((p, i) => [p, i])
         .sort((a, b) => b[0] - a[0]);
 
-    sortedIndices.forEach(([prob, idx]) => {
+    sortedIndices.forEach(([prob, idx], rank) => {
         const li = document.createElement('li');
-        li.innerHTML = `<span>${CLASSES[idx]}</span> <span>${(prob * 100).toFixed(1)}%</span>`;
-        if (idx === maxIdx) li.style.fontWeight = "bold";
+        const item = CLASSES[idx];
+        const percentage = (prob * 100).toFixed(1);
+
+        li.innerHTML = `
+            <span>${item.emoji} ${item.name}</span>
+            <span>${percentage}%</span>
+        `;
+
+        if (rank === 0) {
+            li.classList.add('top');
+        }
+
         probList.appendChild(li);
     });
 }
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'c' || e.key === 'C') {
+        clearCanvas();
+    }
+    if (e.key === 'Enter') {
+        predict();
+    }
+});
+
+console.log("🧠 Neural Vision initialized");
+console.log("💡 Tip: Press 'C' to clear, 'Enter' to predict");

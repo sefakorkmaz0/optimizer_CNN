@@ -1,46 +1,101 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CNN Fashion Classifier</title>
+    <title>🧠 Neural Vision - AI Fashion Classifier</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
+    <div class="background-gradient"></div>
+    
     <div class="container">
-        <header>
-            <h1>Fashion MNIST Classifier</h1>
-            <p>Draw a clothing item (T-shirt, Bag, Shoe, etc.) and let the AI guess!</p>
+        <!-- Header -->
+        <header class="hero">
+            <div class="badge">🔬 Pure Java CNN - No Libraries</div>
+            <h1>Neural Vision</h1>
+            <p class="subtitle">Fashion Item Classifier powered by from-scratch CNN</p>
         </header>
 
-        <div class="main-content">
-            <div class="canvas-container">
-                <canvas id="drawingCanvas" width="280" height="280"></canvas>
-                <div class="controls">
-                    <button id="clearBtn" class="btn secondary">Clear</button>
-                    <button id="predictBtn" class="btn primary">Predict</button>
+        <!-- Main Content -->
+        <main class="main-grid">
+            <!-- Drawing Panel -->
+            <section class="panel glass drawing-panel">
+                <div class="panel-header">
+                    <span class="panel-icon">✏️</span>
+                    <h2>Draw Here</h2>
                 </div>
-            </div>
+                <div class="canvas-wrapper">
+                    <canvas id="drawingCanvas" width="280" height="280"></canvas>
+                    <div class="canvas-hint">Draw a clothing item</div>
+                </div>
+                <div class="controls">
+                    <button id="clearBtn" class="btn btn-secondary">
+                        <span class="btn-icon">🗑️</span> Clear
+                    </button>
+                    <button id="predictBtn" class="btn btn-primary">
+                        <span class="btn-icon">🔮</span> Predict
+                    </button>
+                </div>
+            </section>
 
-            <div class="results-container">
-                <div id="predictionResult" class="prediction-box">
-                    <span class="label">Prediction</span>
-                    <h2 id="predictedLabel">...</h2>
-                    <div class="confidence-bar-wrapper">
-                        <div id="confidenceBar" class="confidence-bar"></div>
-                    </div>
-                    <span id="confidenceValue">0%</span>
+            <!-- Results Panel -->
+            <section class="panel glass results-panel">
+                <div class="panel-header">
+                    <span class="panel-icon">🎯</span>
+                    <h2>Prediction</h2>
                 </div>
                 
+                <div class="result-card" id="resultCard">
+                    <div class="result-emoji" id="resultEmoji">👕</div>
+                    <div class="result-label" id="predictedLabel">Draw something...</div>
+                    <div class="confidence-wrapper">
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" id="confidenceBar"></div>
+                        </div>
+                        <span class="confidence-text" id="confidenceValue">0%</span>
+                    </div>
+                </div>
+
                 <div class="probabilities">
-                    <h3>Probabilities</h3>
-                    <ul id="probList">
-                        <!-- List items will be added here via JS -->
+                    <h3>📊 All Probabilities</h3>
+                    <ul id="probList" class="prob-list">
+                        <!-- Filled by JS -->
                     </ul>
                 </div>
+            </section>
+        </main>
+
+        <!-- Info Cards -->
+        <section class="info-grid">
+            <div class="info-card glass">
+                <div class="info-icon">⚡</div>
+                <h3>Optimizer</h3>
+                <p>Adam with lr=0.001</p>
             </div>
-        </div>
+            <div class="info-card glass">
+                <div class="info-icon">🏗️</div>
+                <h3>Architecture</h3>
+                <p>Conv2D → ReLU → MaxPool → Dense</p>
+            </div>
+            <div class="info-card glass">
+                <div class="info-icon">📈</div>
+                <h3>Accuracy</h3>
+                <p>~90% on Fashion-MNIST</p>
+            </div>
+            <div class="info-card glass">
+                <div class="info-icon">🧮</div>
+                <h3>Parameters</h3>
+                <p>~13,600 trainable weights</p>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Built from scratch with ❤️ in Java • No TensorFlow, No PyTorch</p>
+            <p class="footer-sub">Algorithms Course Project - Fall 2025</p>
+        </footer>
     </div>
 
     <script src="script.js"></script>
