@@ -106,9 +106,9 @@ python3 plots/plot_tsne_comparison.py
 ## 🔬 Reproducibility
 
 ### Hardware
-- **CPU**: [Your CPU Here, e.g., Intel Core i7-10700]
-- **RAM**: [Your RAM Here, e.g., 16GB DDR4]
-- **OS**: [Your OS Here, e.g., Ubuntu 22.04]
+- **CPU**: AMD Ryzen 5 7640HS w/ Radeon 760M Graphics (6 cores, 12 threads)
+- **RAM**: 16GB DDR4 (14Gi Available)
+- **OS**: Linux (x86_64)
 
 ### Random Seeds
 The current implementation uses time-based random initialization. For strict reproducibility, modify:
@@ -153,7 +153,9 @@ Where: F=filters, D=depth, K=kernel, H×W=output size, I=input, O=output, V=node
 
 ## 👥 Team
 
-- [Your Name Here]
+- Yunus Emre Keskin
+- Emir Arslanargin
+- Sefa Korkmaz
 
 ## 📄 License
 

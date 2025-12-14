@@ -1,6 +1,6 @@
 # AI Usage Declaration
 
-**Team Members:** [Your Name / Team Names]
+**Team Members:** Yunus Emre Keskin, Emir Arslanargin, Sefa Korkmaz
 **Project:** CNN Optimizer Benchmark & Computation Graph Implementation
 
 ## 1. AI Tools Used

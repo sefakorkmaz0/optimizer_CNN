@@ -39,11 +39,11 @@ __pycache__/
 data/
 
 # Experiment outputs (can be regenerated)
-experiments/results.csv
-experiments/embeddings_*.csv
+# experiments/results.csv
+# experiments/embeddings_*.csv
 
 # Plots (can be regenerated)
-plots/*.png
+# plots/*.png
 
 # Old files
 tsne_plot.png
