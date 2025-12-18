@@ -143,13 +143,7 @@ Where: F=filters, D=depth, K=kernel, H×W=output size, I=input, O=output, V=node
 
 ## 🎥 Demo Video
 
-[Link to demo video - 2-5 minutes]
-
-## 📚 References
-
-- [Fashion-MNIST Dataset](https://github.com/zalandoresearch/fashion-mnist)
-- [Adam Optimizer Paper](https://arxiv.org/abs/1412.6980)
-- [Backpropagation - Wikipedia](https://en.wikipedia.org/wiki/Backpropagation)
+...
 
 ## 👥 Team
 
@@ -157,6 +151,4 @@ Where: F=filters, D=depth, K=kernel, H×W=output size, I=input, O=output, V=node
 - Emir Arslanargin
 - Sefa Korkmaz
 
-## 📄 License
 
-This project is for educational purposes as part of the Algorithms Course (Fall 2025).
