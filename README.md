@@ -153,7 +153,7 @@ Where: F=filters, D=depth, K=kernel, H×W=output size, I=input, O=output, V=node
 
 ## 👥 Team
 
-- Yunus Emre Keskin
+- Yunus Emre Küçükkaya 
 - Emir Arslanargin
 - Sefa Korkmaz
 
