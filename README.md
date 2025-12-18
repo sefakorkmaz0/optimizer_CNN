@@ -143,7 +143,9 @@ Where: F=filters, D=depth, K=kernel, H×W=output size, I=input, O=output, V=node
 
 ## 🎥 Demo Video
 
-...
+
+https://github.com/user-attachments/assets/fbab1024-0c8c-42d6-bfe0-fa3b739ed94c
+
 
 ## 👥 Team
 
